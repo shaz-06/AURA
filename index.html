@@ -344,9 +344,25 @@ const WellnessApp = ({ userEmail, initialProfileData }) => {
   const [newPassword, setNewPassword] = useState("");
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
+  const [isNavOpen, setIsNavOpen] = useState(window.innerWidth >= 768);
 
 
   const chatEndRef = useRef(null);
+  
+  // --- Mobile Responsiveness ---
+  useEffect(() => {
+    const handleResize = () => {
+        const isDesktop = window.innerWidth >= 768;
+        if (isDesktop) {
+            setIsNavOpen(true);
+        } else {
+            setIsNavOpen(false); // On mobile, content is shown by default after nav selection
+        }
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Set initial state
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- Streak Logic ---
   useEffect(() => {
@@ -627,6 +643,12 @@ const WellnessApp = ({ userEmail, initialProfileData }) => {
     setChat((c) => [...c, { id: Date.now() + Math.random(), from: "user", text: `I'm feeling ${selected}.` }, { id: Date.now() + Math.random(), from: "bot", text: suggestedActivity(selected) }, ]);
     setMoodHistory((prev) => [...prev.slice(-5), { day: `Day ${prev.length + 1}`, mood: moodScore(selected) }]);
     setScreen('chat');
+    if (window.innerWidth < 768) setIsNavOpen(false);
+  }
+  
+  const handleNavClick = (screenId) => {
+    setScreen(screenId);
+    if (window.innerWidth < 768) setIsNavOpen(false);
   }
 
   function moodScore(m) {
@@ -666,9 +688,39 @@ const WellnessApp = ({ userEmail, initialProfileData }) => {
     return Object.keys(moodCounts).reduce((a, b) => moodCounts[a] > moodCounts[b] ? a : b);
   };
 
+  const Sidebar = () => (
+    <div className="bg-indigo-700/80 text-white p-4 sm:p-6 flex flex-col h-full overflow-y-auto">
+      <div>
+        <h1 className="text-3xl sm:text-4xl font-bold">Aura</h1>
+        <p className="mt-2 text-indigo-200 text-sm sm:text-base">Your confidential wellness companion</p>
+      </div>
+      <div className="mt-8">
+        <h3 className="font-semibold text-indigo-200">Daily Streak</h3>
+        <p className="text-2xl sm:text-3xl mt-1 text-white">🔥 {streak} days</p>
+      </div>
+      <div className="mt-8">
+        <h3 className="font-semibold text-indigo-200">Quick Mood Check</h3>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {["Anxious", "Sad", "Stressed", "Okay"].map((m) => (
+            <button key={m} onClick={() => quickMood(m)} className="bg-indigo-500/80 hover:bg-indigo-500 rounded-md py-2 text-sm transition-colors">{m}</button>
+          ))}
+        </div>
+      </div>
+      <nav className="mt-auto flex flex-col gap-2 pt-8">
+        {mainNavItems.map(item => (
+          <button key={item.id} onClick={() => handleNavClick(item.id)} className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${screen === item.id ? 'bg-white text-indigo-700 shadow' : 'bg-indigo-600 hover:bg-indigo-500/80'}`}>{item.label}</button>
+        ))}
+        <div className="my-2 border-t border-indigo-500"></div>
+        {secondaryNavItems.map(item => (
+          <button key={item.id} onClick={() => handleNavClick(item.id)} className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${screen === item.id ? 'bg-white text-indigo-700 shadow' : 'bg-indigo-600 hover:bg-indigo-500/80'}`}>{item.label}</button>
+        ))}
+      </nav>
+    </div>
+  );
+
   const renderContent = () => {
     switch (screen) {
-      case null: return (<div className="p-6 h-full flex flex-col justify-center items-center text-center"><h2 className="text-3xl font-semibold text-gray-800">Welcome to Aura</h2><p className="text-gray-600 mt-2 max-w-md">How are you feeling today? Select a mood or an activity from the left to get started.</p></div>);
+      case null: return (<div className="p-6 h-full flex flex-col justify-center items-center text-center"><h2 className="text-3xl font-semibold text-white">Welcome to Aura</h2><p className="text-indigo-200 mt-2 max-w-md">How are you feeling today? Select a mood or an activity from the left to get started.</p></div>);
       case 'chat': return (
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg h-full flex flex-col">
             {/* Chat Header */}
@@ -711,14 +763,14 @@ const WellnessApp = ({ userEmail, initialProfileData }) => {
             <div className="p-4 flex gap-3 border-t border-white/10 items-center">
               <button
                 onClick={handleToggleListening}
-                className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
+                className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
                 disabled={!recognitionRef.current}
               >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 sm:w-6 sm:h-6"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
               </button>
               <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())} placeholder={isListening ? "Listening..." : "Type or speak your message..."} className="flex-1 p-3 border border-white/20 bg-white/5 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 transition resize-none" rows={1} disabled={isThinking}/>
-              <button onClick={sendMessage} className="w-12 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 shrink-0" disabled={isThinking || !input.trim()}>
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              <button onClick={sendMessage} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 shrink-0" disabled={isThinking || !input.trim()}>
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 sm:w-6 sm:h-6"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               </button>
             </div>
           </div>
@@ -874,7 +926,7 @@ const WellnessApp = ({ userEmail, initialProfileData }) => {
             <div className="mt-6 space-y-6">
                 <div className="p-4 bg-black/20 rounded-lg">
                     <h3 className="font-semibold text-lg text-white mb-2">National Youth Helpline</h3>
-                    <a href="tel:1098" className="flex items-center gap-4 p-4 bg-indigo-500/20 rounded-lg hover:bg-indigo-500/30 transition">
+                    <a href="https://www.childlineindia.org.in/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-indigo-500/20 rounded-lg hover:bg-indigo-500/30 transition">
                         <span className="text-3xl">📞</span>
                         <div>
                             <p className="font-bold text-2xl text-white">1098</p>
@@ -885,9 +937,9 @@ const WellnessApp = ({ userEmail, initialProfileData }) => {
                 <div className="p-4 bg-black/20 rounded-lg">
                      <h3 className="font-semibold text-lg text-white mb-2">Emergency Services</h3>
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <a href="tel:112" className="p-3 bg-red-500/20 rounded-lg text-center hover:bg-red-500/30 transition"><p className="font-semibold text-red-200">Police</p><p className="text-xl font-bold text-white">112 or 100</p></a>
-                        <a href="tel:108" className="p-3 bg-blue-500/20 rounded-lg text-center hover:bg-blue-500/30 transition"><p className="font-semibold text-blue-200">Ambulance</p><p className="text-xl font-bold text-white">108 or 102</p></a>
-                        <a href="tel:101" className="p-3 bg-orange-500/20 rounded-lg text-center hover:bg-orange-500/30 transition"><p className="font-semibold text-orange-200">Fire</p><p className="text-xl font-bold text-white">101</p></a>
+                        <a href="https://www.indiapolice.gov.in/" target="_blank" rel="noopener noreferrer" className="p-3 bg-red-500/20 rounded-lg text-center hover:bg-red-500/30 transition"><p className="font-semibold text-red-200">Police</p><p className="text-xl font-bold text-white">112 or 100</p></a>
+                        <a href="https://www.nhp.gov.in/helpline_pg" target="_blank" rel="noopener noreferrer" className="p-3 bg-blue-500/20 rounded-lg text-center hover:bg-blue-500/30 transition"><p className="font-semibold text-blue-200">Ambulance</p><p className="text-xl font-bold text-white">108 or 102</p></a>
+                        <a href="https://www.india.gov.in/spotlight/disaster-management-india" target="_blank" rel="noopener noreferrer" className="p-3 bg-orange-500/20 rounded-lg text-center hover:bg-orange-500/30 transition"><p className="font-semibold text-orange-200">Fire</p><p className="text-xl font-bold text-white">101</p></a>
                      </div>
                 </div>
                  <div className="p-4 bg-black/20 rounded-lg">
@@ -1142,37 +1194,58 @@ const WellnessApp = ({ userEmail, initialProfileData }) => {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 to-indigo-900 overflow-hidden flex items-center justify-center p-4 font-sans">
-      <Orb className="w-96 h-96 bg-indigo-500" initial={{ x: -100, y: -150 }} animate={{ x: 100, y: 150 }} />
-      <Orb className="w-80 h-80 bg-pink-500" initial={{ x: 200, y: 150 }} animate={{ x: -50, y: -200 }} />
-      <Orb className="w-72 h-72 bg-purple-500" initial={{ x: -200, y: 200 }} animate={{ x: 50, y: -100 }} />
-      
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-7xl h-[90vh] bg-black/20 backdrop-blur-xl rounded-2xl shadow-xl grid grid-cols-12 overflow-hidden">
-        <div className="col-span-12 md:col-span-3 bg-indigo-700/80 text-white p-6 flex flex-col overflow-y-auto">
-          <div><h1 className="text-4xl font-bold">Aura</h1><p className="mt-2 text-indigo-200">Your confidential wellness companion</p></div>
-          <div className="mt-8"><h3 className="font-semibold text-indigo-200">Daily Streak</h3><p className="text-3xl mt-1 text-white">🔥 {streak} days</p></div>
-          <div className="mt-8"><h3 className="font-semibold text-indigo-200">Quick Mood Check</h3><div className="mt-3 grid grid-cols-2 gap-2">{["Anxious", "Sad", "Stressed", "Okay"].map((m) => (<button key={m} onClick={() => quickMood(m)} className="bg-indigo-500/80 hover:bg-indigo-500 rounded-md py-2 text-sm transition-colors">{m}</button>))}</div></div>
-          <nav className="mt-auto flex flex-col gap-2">{mainNavItems.map(item => (<button key={item.id} onClick={() => setScreen(item.id)} className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${screen === item.id ? 'bg-white text-indigo-700 shadow' : 'bg-indigo-600 hover:bg-indigo-500/80'}`}>{item.label}</button>))}<div className="my-2 border-t border-indigo-500"></div>{secondaryNavItems.map(item => (<button key={item.id} onClick={() => setScreen(item.id)} className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${screen === item.id ? 'bg-white text-indigo-700 shadow' : 'bg-indigo-600 hover:bg-indigo-500/80'}`}>{item.label}</button>))}</nav>
-        </div>
-        <div className="col-span-12 md:col-span-9 p-6 overflow-y-auto">{renderContent()}</div>
-        {escalationOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"><motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl"><h3 className="text-xl font-semibold text-gray-800">We want to keep you safe</h3>{isConnecting ? (<p className="mt-4 text-gray-600">Connecting you to the crisis helpline...</p>) : (<><p className="mt-2 text-gray-600">Your message is concerning. Can we connect you to a crisis line now?</p><div className="mt-6 flex gap-3 justify-end"><button onClick={() => { setIsConnecting(true); setTimeout(() => { setEscalationOpen(false); setIsConnecting(false); }, 3000); }} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Yes, Connect</button><button onClick={() => { setEscalationOpen(false); setChat((c) => [...c, { id: Date.now(), from: 'bot', text: "Okay. Please know help is available. I can offer grounding activities or show you other resources." }]); }} className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition">Not now</button></div></>)}</motion.div></div>)}
-        {isSharingStory && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} className="bg-gray-800 text-white rounded-lg p-6 max-w-lg w-full shadow-xl">
-                    <h3 className="text-xl font-semibold">Share Your Story</h3>
-                    <p className="text-indigo-200 mt-2 text-sm">Your story will be shared anonymously to help and inspire others. Thank you for your courage.</p>
-                    <textarea
-                        value={newStoryText}
-                        onChange={(e) => setNewStoryText(e.target.value)}
-                        placeholder="Write your story here..."
-                        className="w-full p-3 border border-indigo-500/50 bg-black/30 rounded-lg mt-4 text-white placeholder-gray-400 h-40"
-                    />
-                    <div className="mt-6 flex gap-3 justify-end">
-                        <button onClick={handleShareStory} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">Share Anonymously</button>
-                        <button onClick={() => setIsSharingStory(false)} className="px-4 py-2 border border-indigo-400/50 rounded-lg hover:bg-indigo-500/20 transition">Cancel</button>
-                    </div>
-                </motion.div>
+        <Orb className="w-96 h-96 bg-indigo-500" initial={{ x: -100, y: -150 }} animate={{ x: 100, y: 150 }} />
+        <Orb className="w-80 h-80 bg-pink-500" initial={{ x: 200, y: 150 }} animate={{ x: -50, y: -200 }} />
+        <Orb className="w-72 h-72 bg-purple-500" initial={{ x: -200, y: 200 }} animate={{ x: 50, y: -100 }} />
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-7xl h-full sm:h-[90vh] bg-black/20 backdrop-blur-xl rounded-none sm:rounded-2xl shadow-xl flex overflow-hidden">
+            
+            {/* Mobile Header */}
+            <div className="md:hidden p-4 bg-indigo-800/50 flex justify-between items-center w-full absolute top-0 left-0 z-20">
+                 <h1 className="text-2xl font-bold text-white">Aura</h1>
+                 <button onClick={() => setIsNavOpen(!isNavOpen)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                 </button>
             </div>
-        )}
+
+            {/* Sidebar */}
+            <motion.div
+                className={`
+                    absolute top-0 left-0 h-full z-10 w-full
+                    md:relative md:w-1/3 md:max-w-xs md:col-span-3
+                `}
+                animate={{
+                    x: isNavOpen ? '0%' : '-100%'
+                }}
+                transition={{ type: 'tween', duration: 0.3 }}
+            >
+                <Sidebar />
+            </motion.div>
+
+            {/* Content Area */}
+            <div className="col-span-12 md:col-span-9 flex-1 p-4 sm:p-6 overflow-y-auto mt-16 md:mt-0">
+                {renderContent()}
+            </div>
+            
+             {escalationOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"><motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl"><h3 className="text-xl font-semibold text-gray-800">We want to keep you safe</h3>{isConnecting ? (<p className="mt-4 text-gray-600">Connecting you to the crisis helpline...</p>) : (<><p className="mt-2 text-gray-600">Your message is concerning. Can we connect you to a crisis line now?</p><div className="mt-6 flex gap-3 justify-end"><button onClick={() => { setIsConnecting(true); setTimeout(() => { setEscalationOpen(false); setIsConnecting(false); }, 3000); }} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Yes, Connect</button><button onClick={() => { setEscalationOpen(false); setChat((c) => [...c, { id: Date.now(), from: 'bot', text: "Okay. Please know help is available. I can offer grounding activities or show you other resources." }]); }} className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition">Not now</button></div></>)}</motion.div></div>)}
+             {isSharingStory && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <motion.div initial={{scale: 0.9, opacity: 0}} animate={{scale: 1, opacity: 1}} className="bg-gray-800 text-white rounded-lg p-6 max-w-lg w-full shadow-xl">
+                        <h3 className="text-xl font-semibold">Share Your Story</h3>
+                        <p className="text-indigo-200 mt-2 text-sm">Your story will be shared anonymously to help and inspire others. Thank you for your courage.</p>
+                        <textarea
+                            value={newStoryText}
+                            onChange={(e) => setNewStoryText(e.target.value)}
+                            placeholder="Write your story here..."
+                            className="w-full p-3 border border-indigo-500/50 bg-black/30 rounded-lg mt-4 text-white placeholder-gray-400 h-40"
+                        />
+                        <div className="mt-6 flex gap-3 justify-end">
+                            <button onClick={handleShareStory} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">Share Anonymously</button>
+                            <button onClick={() => setIsSharingStory(false)} className="px-4 py-2 border border-indigo-400/50 rounded-lg hover:bg-indigo-500/20 transition">Cancel</button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
       </motion.div>
     </div>
   );
@@ -1211,3 +1284,4 @@ export default function App() {
 
   return <WellnessApp userEmail={userEmail} initialProfileData={profileData} />;
 }
+
